@@ -1,856 +1,310 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Cloud Resource Monitor</title>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud Resource Monitor — OCI-Inspired</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  :root {
-    --sidebar-bg: #5b21b6;
-    --sidebar-active: #7c3aed;
-    --bg: #f4f6fb;
-    --card-bg: #ffffff;
-    --text-primary: #1e1b4b;
-    --text-secondary: #6b7280;
-    --text-muted: #9ca3af;
-    --border: #e5e7eb;
-    --shadow: 0 4px 24px rgba(91,33,182,0.07);
-    --shadow-card: 0 2px 12px rgba(0,0,0,0.06);
-    --radius: 18px;
-    --radius-sm: 10px;
-    --grad-purple: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-    --grad-blue:   linear-gradient(135deg, #2563eb 0%, #60a5fa 100%);
-    --grad-pink:   linear-gradient(135deg, #ec4899 0%, #f9a8d4 100%);
-    --grad-orange: linear-gradient(135deg, #f97316 0%, #fbbf24 100%);
-    --grad-green:  linear-gradient(135deg, #10b981 0%, #6ee7b7 100%);
-    --grad-red:    linear-gradient(135deg, #ef4444 0%, #fca5a5 100%);
-  }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f4f6f9; color: #1a1a2e; }
 
-  body {
-    font-family: 'Poppins', sans-serif;
-    background: var(--bg);
-    color: var(--text-primary);
-    display: flex;
-    min-height: 100vh;
-    overflow-x: hidden;
+  header {
+    background: #1F4E79; color: white;
+    padding: 16px 32px;
+    display: flex; justify-content: space-between; align-items: center;
   }
+  header h1 { font-size: 20px; font-weight: 600; }
+  header span { font-size: 13px; opacity: 0.75; }
 
-  /* ── SIDEBAR ── */
-  .sidebar {
-    width: 72px;
-    background: var(--sidebar-bg);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 24px 0;
-    gap: 6px;
-    position: fixed;
-    top: 0; left: 0; bottom: 0;
-    z-index: 100;
-    box-shadow: 4px 0 24px rgba(91,33,182,0.18);
-  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
 
-  .sidebar-logo {
-    width: 42px; height: 42px;
-    background: rgba(255,255,255,0.18);
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    margin-bottom: 22px;
-    font-size: 20px;
-    color: #fff;
-    font-weight: 900;
-    letter-spacing: -1px;
-  }
-
-  .nav-item {
-    width: 46px; height: 46px;
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    color: rgba(255,255,255,0.55);
-    font-size: 18px;
-    transition: background 0.2s, color 0.2s;
-    position: relative;
-  }
-  .nav-item:hover { background: rgba(255,255,255,0.12); color: #fff; }
-  .nav-item.active {
-    background: rgba(255,255,255,0.22);
-    color: #fff;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-  }
-  .nav-item .badge {
-    position: absolute;
-    top: 6px; right: 6px;
-    width: 8px; height: 8px;
-    background: #fbbf24;
-    border-radius: 50%;
-    border: 2px solid var(--sidebar-bg);
-  }
-
-  .sidebar-avatar {
-    margin-top: auto;
-    width: 38px; height: 38px;
-    border-radius: 50%;
-    background: var(--grad-orange);
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-weight: 700; font-size: 14px;
-    cursor: pointer;
-  }
-
-  /* ── MAIN ── */
-  .main {
-    margin-left: 72px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-  }
-
-  /* ── TOPBAR ── */
-  .topbar {
-    height: 68px;
-    background: var(--card-bg);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 32px;
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    z-index: 50;
-  }
-
-  .topbar-title {
-    font-family: 'Nunito', sans-serif;
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--text-primary);
-  }
-
-  .topbar-right {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-
-  .topbar-date {
-    font-size: 13px;
-    color: var(--text-secondary);
-    background: var(--bg);
-    padding: 6px 14px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    font-weight: 500;
-  }
-
-  .refresh-btn {
-    background: var(--grad-purple);
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    padding: 8px 18px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: 'Poppins', sans-serif;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: opacity 0.2s, transform 0.15s;
-  }
-  .refresh-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-  .refresh-btn:active { transform: translateY(0); }
-
-  /* ── CONTENT ── */
-  .content {
-    padding: 28px 32px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 26px;
-  }
-
-  /* ── STAT CARDS ── */
-  .stat-row {
+  .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px; margin-bottom: 24px;
   }
-
   .stat-card {
-    border-radius: var(--radius);
-    padding: 24px 22px;
-    color: #fff;
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 8px 28px rgba(0,0,0,0.13);
-    transition: transform 0.2s;
+    background: white; border-radius: 10px;
+    padding: 20px; border-left: 4px solid #1F4E79;
   }
-  .stat-card:hover { transform: translateY(-3px); }
+  .stat-card .label { font-size: 12px; color: #888; margin-bottom: 6px; }
+  .stat-card .value { font-size: 28px; font-weight: 700; color: #1F4E79; }
+  .stat-card .sub   { font-size: 12px; color: #aaa; margin-top: 4px; }
 
-  .stat-card::after {
-    content: '';
-    position: absolute;
-    top: -24px; right: -24px;
-    width: 90px; height: 90px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.12);
-  }
-  .stat-card::before {
-    content: '';
-    position: absolute;
-    top: 10px; right: 20px;
-    width: 50px; height: 50px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.08);
-  }
-
-  .stat-card.purple { background: var(--grad-purple); }
-  .stat-card.blue   { background: var(--grad-blue); }
-  .stat-card.pink   { background: var(--grad-pink); }
-  .stat-card.orange { background: var(--grad-orange); }
-
-  .stat-icon {
-    width: 48px; height: 48px;
-    border-radius: 14px;
-    background: rgba(255,255,255,0.22);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
-    flex-shrink: 0;
-  }
-
-  .stat-info {}
-  .stat-value {
-    font-family: 'Nunito', sans-serif;
-    font-size: 28px;
-    font-weight: 900;
-    line-height: 1;
-  }
-  .stat-label {
-    font-size: 12px;
-    font-weight: 600;
-    opacity: 0.85;
-    margin-top: 4px;
-    letter-spacing: 0.3px;
-  }
-
-  /* ── MIDDLE ROW ── */
-  .mid-row {
+  .main-grid {
     display: grid;
-    grid-template-columns: 1fr 340px;
+    grid-template-columns: 2fr 1fr;
     gap: 20px;
   }
 
   .card {
-    background: var(--card-bg);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-card);
-    padding: 24px;
+    background: white; border-radius: 10px;
+    padding: 20px; margin-bottom: 20px;
   }
+  .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: #1F4E79; }
 
-  .card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 12px; background: #f0f4f8; color: #555; font-weight: 600; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+  tr:hover td { background: #fafcff; cursor: pointer; }
 
-  .card-title {
-    font-family: 'Nunito', sans-serif;
-    font-size: 16px;
-    font-weight: 800;
-    color: var(--text-primary);
+  .badge {
+    display: inline-block; padding: 3px 10px;
+    border-radius: 20px; font-size: 11px; font-weight: 600;
   }
-  .card-subtitle {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
+  .badge.running  { background: #e8f5e9; color: #2e7d32; }
+  .badge.warning  { background: #fff8e1; color: #f57f17; }
+  .badge.critical { background: #ffebee; color: #c62828; }
+  .badge.stopped  { background: #f5f5f5; color: #757575; }
 
-  .server-tabs {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
-  }
+  .bar-wrap { background: #f0f0f0; border-radius: 4px; height: 8px; width: 100%; margin-bottom: 3px; }
+  .bar { height: 8px; border-radius: 4px; transition: width 0.4s; }
+  .bar.low    { background: #43a047; }
+  .bar.medium { background: #fb8c00; }
+  .bar.high   { background: #e53935; }
 
-  .server-tab {
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1.5px solid var(--border);
-    background: transparent;
-    color: var(--text-secondary);
-    font-family: 'Poppins', sans-serif;
-    transition: all 0.18s;
-  }
-  .server-tab.active, .server-tab:hover {
-    background: var(--sidebar-active);
-    color: #fff;
-    border-color: var(--sidebar-active);
-  }
-
-  .chart-wrap {
-    position: relative;
-    height: 200px;
-  }
-
-  .donut-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    height: 100%;
-  }
-
-  .donut-chart-wrap {
-    position: relative;
-    width: 160px; height: 160px;
-  }
-
-  .donut-center {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-  .donut-pct {
-    font-family: 'Nunito', sans-serif;
-    font-size: 28px;
-    font-weight: 900;
-    color: var(--text-primary);
-  }
-  .donut-sub {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-weight: 500;
-  }
-
-  .donut-legend {
-    display: flex;
-    gap: 18px;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-  }
-  .legend-dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-  }
-
-  /* ── BOTTOM ROW ── */
-  .bottom-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  }
-
-  .server-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-  }
-  .server-table th {
-    text-align: left;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--border);
-  }
-  .server-table td {
-    padding: 11px 10px;
-    border-bottom: 1px solid #f3f4f6;
-    color: var(--text-primary);
-    font-weight: 500;
-  }
-  .server-table tr:last-child td { border-bottom: none; }
-  .server-table tr:hover td { background: #f9fafb; }
-
-  .status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 700;
-  }
-  .status-pill.running  { background: #d1fae5; color: #065f46; }
-  .status-pill.warning  { background: #fef3c7; color: #92400e; }
-  .status-pill.stopped  { background: #fee2e2; color: #991b1b; }
-  .status-dot { width: 6px; height: 6px; border-radius: 50%; }
-  .status-pill.running  .status-dot { background: #10b981; }
-  .status-pill.warning  .status-dot { background: #f59e0b; }
-  .status-pill.stopped  .status-dot { background: #ef4444; }
-
-  .mini-bar {
-    height: 6px;
-    border-radius: 3px;
-    background: var(--border);
-    overflow: hidden;
-    width: 70px;
-    display: inline-block;
-    vertical-align: middle;
-  }
-  .mini-bar-fill {
-    height: 100%;
-    border-radius: 3px;
-    transition: width 0.5s;
-  }
-  .bar-green  { background: var(--grad-green); }
-  .bar-blue   { background: var(--grad-blue); }
-  .bar-orange { background: var(--grad-orange); }
-  .bar-red    { background: var(--grad-red); }
-
-  .alert-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
   .alert-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 13px 14px;
-    border-radius: 12px;
-    background: #f9fafb;
-    border-left: 4px solid transparent;
-    transition: background 0.15s;
-  }
-  .alert-item:hover { background: #f3f4f6; }
-  .alert-item.critical { border-left-color: #ef4444; }
-  .alert-item.warning  { border-left-color: #f59e0b; }
-
-  .alert-icon {
-    width: 34px; height: 34px;
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 15px;
-    flex-shrink: 0;
-  }
-  .alert-icon.critical { background: #fee2e2; }
-  .alert-icon.warning  { background: #fef3c7; }
-
-  .alert-body { flex: 1; }
-  .alert-msg {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
-    line-height: 1.3;
-  }
-  .alert-meta {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-top: 3px;
-  }
-
-  .severity-badge {
-    padding: 3px 9px;
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    flex-shrink: 0;
-  }
-  .severity-badge.critical { background: #fee2e2; color: #b91c1c; }
-  .severity-badge.warning  { background: #fef3c7; color: #92400e; }
-
-  .skeleton {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-    border-radius: 6px;
-    height: 14px;
-    width: 80%;
-  }
-  @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-
-  .live-dot {
-    display: inline-flex; align-items: center; gap: 5px;
-    font-size: 11px; font-weight: 600; color: #10b981;
-  }
-  .live-dot::before {
-    content: '';
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: #10b981;
-    animation: pulse 1.4s ease infinite;
-    display: inline-block;
-  }
-  @keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.4); opacity: 0.6; }
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 32px 0;
-    color: var(--text-muted);
+    padding: 10px 14px; border-radius: 8px; margin-bottom: 8px;
+    border-left: 4px solid #e53935; background: #fff5f5;
     font-size: 13px;
   }
-  .empty-state .emoji { font-size: 28px; display: block; margin-bottom: 8px; }
+  .alert-item.warning { border-color: #fb8c00; background: #fff8f0; }
+  .alert-item .alert-title { font-weight: 600; margin-bottom: 2px; }
+  .alert-item .alert-meta  { font-size: 11px; color: #888; margin-top: 4px; }
 
-  @media (max-width: 1100px) {
-    .mid-row { grid-template-columns: 1fr; }
-    .bottom-row { grid-template-columns: 1fr; }
-    .stat-row { grid-template-columns: repeat(2, 1fr); }
+  .btn {
+    background: #1F4E79; color: white;
+    border: none; border-radius: 6px;
+    padding: 9px 20px; font-size: 13px;
+    cursor: pointer; margin-bottom: 16px;
+  }
+  .btn:hover { background: #163d5e; }
+
+  #chart-container { position: relative; height: 220px; }
+
+  @media (max-width: 768px) {
+    .main-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 
-<aside class="sidebar">
-  <div class="sidebar-logo">☁</div>
-  <div class="nav-item active" title="Dashboard">🏠</div>
-  <div class="nav-item" title="Servers">🖥</div>
-  <div class="nav-item" title="Metrics">📈</div>
-  <div class="nav-item" title="Alerts" id="nav-alerts">
-    🔔
-    <span class="badge" id="alert-badge" style="display:none"></span>
+<header>
+  <h1>&#9729; Cloud Resource Monitor</h1>
+  <span id="last-updated">Last updated: —</span>
+</header>
+
+<div class="container">
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">Total Servers</div>
+      <div class="value" id="total-servers">—</div>
+      <div class="sub">Across all regions</div>
+    </div>
+    <div class="stat-card" style="border-color:#43a047">
+      <div class="label">Servers Running</div>
+      <div class="value" id="running-servers" style="color:#43a047">—</div>
+      <div class="sub">Healthy instances</div>
+    </div>
+    <div class="stat-card" style="border-color:#e53935">
+      <div class="label">Active Alerts</div>
+      <div class="value" id="active-alerts" style="color:#e53935">—</div>
+      <div class="sub">Needs attention</div>
+    </div>
+    <div class="stat-card" style="border-color:#fb8c00">
+      <div class="label">Avg CPU Usage</div>
+      <div class="value" id="avg-cpu" style="color:#fb8c00">—</div>
+      <div class="sub">Across all servers</div>
+    </div>
   </div>
-  <div class="nav-item" title="Regions">🌐</div>
-  <div class="nav-item" title="Settings">⚙️</div>
-  <div class="sidebar-avatar" title="Admin">AD</div>
-</aside>
 
-<div class="main">
-  <header class="topbar">
-    <div class="topbar-title">Cloud Resource Monitor</div>
-    <div class="topbar-right">
-      <span class="live-dot">Live</span>
-      <span class="topbar-date" id="current-date">—</span>
-      <button class="refresh-btn" onclick="loadAll()">⟳ Refresh</button>
-    </div>
-  </header>
+  <button class="btn" onclick="simulateData()">&#8635; Simulate New Metrics</button>
 
-  <div class="content">
-
-    <!-- STAT CARDS -->
-    <div class="stat-row">
-      <div class="stat-card purple">
-        <div class="stat-icon">🖥</div>
-        <div class="stat-info">
-          <div class="stat-value" id="stat-servers">—</div>
-          <div class="stat-label">Total Servers</div>
-        </div>
-      </div>
-      <div class="stat-card blue">
-        <div class="stat-icon">📡</div>
-        <div class="stat-info">
-          <div class="stat-value" id="stat-running">—</div>
-          <div class="stat-label">Running</div>
-        </div>
-      </div>
-      <div class="stat-card pink">
-        <div class="stat-icon">⚠️</div>
-        <div class="stat-info">
-          <div class="stat-value" id="stat-alerts">—</div>
-          <div class="stat-label">Active Alerts</div>
-        </div>
-      </div>
-      <div class="stat-card orange">
-        <div class="stat-icon">💾</div>
-        <div class="stat-info">
-          <div class="stat-value" id="stat-avg-cpu">—</div>
-          <div class="stat-label">Avg CPU %</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- MIDDLE ROW -->
-    <div class="mid-row">
+  <div class="main-grid">
+    <div>
       <div class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Resource Usage Over Time</div>
-            <div class="card-subtitle">CPU · Memory · Disk — last 20 readings</div>
-          </div>
-          <div class="server-tabs" id="server-tabs"></div>
-        </div>
-        <div class="chart-wrap">
-          <canvas id="lineChart"></canvas>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Server Health</div>
-            <div class="card-subtitle">Distribution by status</div>
-          </div>
-        </div>
-        <div class="donut-wrap">
-          <div class="donut-chart-wrap">
-            <canvas id="donutChart"></canvas>
-            <div class="donut-center">
-              <div class="donut-pct" id="donut-pct">—</div>
-              <div class="donut-sub">Healthy</div>
-            </div>
-          </div>
-          <div class="donut-legend">
-            <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Running</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Warning</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Stopped</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- BOTTOM ROW -->
-    <div class="bottom-row">
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Servers Overview</div>
-            <div class="card-subtitle">Latest metrics per server</div>
-          </div>
-        </div>
-        <table class="server-table">
+        <h2>Server Overview</h2>
+        <table>
           <thead>
             <tr>
               <th>Server</th>
               <th>Region</th>
               <th>Status</th>
               <th>CPU</th>
-              <th>Mem</th>
+              <th>Memory</th>
               <th>Disk</th>
             </tr>
           </thead>
           <tbody id="server-table-body">
-            <tr><td colspan="6"><div class="skeleton"></div></td></tr>
+            <tr><td colspan="6" style="color:#aaa;text-align:center">Loading...</td></tr>
           </tbody>
         </table>
       </div>
 
       <div class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Active Alerts</div>
-            <div class="card-subtitle">Unresolved · Latest 10</div>
-          </div>
-          <button class="refresh-btn" style="font-size:11px;padding:6px 13px;" onclick="loadAlerts()">⟳</button>
-        </div>
-        <div class="alert-list" id="alert-list">
-          <div class="skeleton" style="height:50px;width:100%;border-radius:12px;"></div>
+        <h2 id="chart-title">Click any server row above to view its CPU &amp; Memory history</h2>
+        <div id="chart-container">
+          <canvas id="cpu-chart"></canvas>
         </div>
       </div>
     </div>
 
+    <div>
+      <div class="card">
+        <h2>Active Alerts</h2>
+        <div id="alerts-panel">
+          <div style="color:#aaa;font-size:13px">Loading...</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-let servers = [];
-let alerts  = [];
-let activeServerId = null;
-let lineChart  = null;
-let donutChart = null;
+let cpuChart = null;
 
-function setDate() {
-  const d = new Date();
-  document.getElementById('current-date').textContent =
-    d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })
-    + ' · ' + d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
-}
-setDate();
-setInterval(setDate, 30000);
-
-function barColor(v) {
-  if (v > 80) return 'bar-red';
-  if (v > 60) return 'bar-orange';
-  return 'bar-green';
+function barClass(v) {
+  if (v < 50) return 'low';
+  if (v < 75) return 'medium';
+  return 'high';
 }
 
-function pct(v) {
-  return v != null ? Math.round(v) + '%' : '—';
-}
-
-async function loadAll() {
-  await Promise.all([loadServers(), loadAlerts()]);
+function bar(val) {
+  return `<div class="bar-wrap">
+            <div class="bar ${barClass(val)}" style="width:${val}%"></div>
+          </div>
+          <span style="font-size:11px;color:#555">${val}%</span>`;
 }
 
 async function loadServers() {
   try {
     const res = await fetch('/api/servers');
-    servers = await res.json();
-    renderStatCards();
-    renderServerTabs();
-    renderServerTable();
-    renderDonut();
-    if (activeServerId) {
-      loadMetrics(activeServerId);
-    } else if (servers.length > 0) {
-      activeServerId = servers[0].id;
-      loadMetrics(activeServerId);
-    }
-  } catch(e) { console.error('Failed to load servers:', e); }
-}
+    const servers = await res.json();
 
-function renderStatCards() {
-  document.getElementById('stat-servers').textContent = servers.length;
-  const running = servers.filter(s => s.status === 'running').length;
-  document.getElementById('stat-running').textContent = running;
-  const cpus = servers.filter(s => s.cpu_usage != null).map(s => s.cpu_usage);
-  const avgCpu = cpus.length ? (cpus.reduce((a,b)=>a+b,0)/cpus.length).toFixed(1) : '—';
-  document.getElementById('stat-avg-cpu').textContent = avgCpu + (cpus.length ? '%' : '');
-}
+    document.getElementById('total-servers').textContent = servers.length;
+    document.getElementById('running-servers').textContent =
+      servers.filter(s => s.status === 'running').length;
 
-function renderServerTabs() {
-  const tabs = document.getElementById('server-tabs');
-  tabs.innerHTML = servers.map(s =>
-    `<button class="server-tab ${s.id === activeServerId ? 'active' : ''}"
-      onclick="selectServer(${s.id}, this)">${s.name}</button>`
-  ).join('');
-}
+    const cpus = servers.filter(s => s.cpu_usage != null).map(s => s.cpu_usage);
+    document.getElementById('avg-cpu').textContent =
+      cpus.length ? Math.round(cpus.reduce((a,b) => a+b, 0) / cpus.length) + '%' : '—';
 
-function selectServer(id, el) {
-  activeServerId = id;
-  document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  loadMetrics(id);
-}
+    const tbody = document.getElementById('server-table-body');
+    tbody.innerHTML = servers.map(s => `
+      <tr onclick="loadChart(${s.id}, '${s.name}')">
+        <td><strong>${s.name}</strong></td>
+        <td>${s.region}</td>
+        <td><span class="badge ${s.cpu_usage > 85 ? 'critical' : s.status}">
+          ${s.cpu_usage > 85 ? 'critical' : s.status}
+        </span></td>
+        <td>${s.cpu_usage    != null ? bar(s.cpu_usage)    : '—'}</td>
+        <td>${s.memory_usage != null ? bar(s.memory_usage) : '—'}</td>
+        <td>${s.disk_usage   != null ? bar(s.disk_usage)   : '—'}</td>
+      </tr>
+    `).join('');
 
-function renderServerTable() {
-  const tbody = document.getElementById('server-table-body');
-  if (!servers.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No servers found</td></tr>'; return; }
-  tbody.innerHTML = servers.map(s => {
-    const cpu  = s.cpu_usage  != null ? s.cpu_usage  : 0;
-    const mem  = s.memory_usage != null ? s.memory_usage : 0;
-    const disk = s.disk_usage != null ? s.disk_usage : 0;
-    const st   = s.status || 'unknown';
-    return `
-    <tr>
-      <td><b>${s.name}</b></td>
-      <td style="color:var(--text-secondary)">${s.region}</td>
-      <td><span class="status-pill ${st}"><span class="status-dot"></span>${st}</span></td>
-      <td>
-        <span style="font-size:12px;font-weight:700;margin-right:5px">${pct(cpu)}</span>
-        <span class="mini-bar"><span class="mini-bar-fill ${barColor(cpu)}" style="width:${cpu}%"></span></span>
-      </td>
-      <td>
-        <span style="font-size:12px;font-weight:700;margin-right:5px">${pct(mem)}</span>
-        <span class="mini-bar"><span class="mini-bar-fill bar-blue" style="width:${mem}%"></span></span>
-      </td>
-      <td>
-        <span style="font-size:12px;font-weight:700;margin-right:5px">${pct(disk)}</span>
-        <span class="mini-bar"><span class="mini-bar-fill ${barColor(disk)}" style="width:${disk}%"></span></span>
-      </td>
-    </tr>`;
-  }).join('');
-}
+    document.getElementById('last-updated').textContent =
+      'Last updated: ' + new Date().toLocaleTimeString();
 
-function renderDonut() {
-  const running = servers.filter(s => s.status === 'running').length;
-  const warning = servers.filter(s => s.status === 'warning').length;
-  const stopped = servers.filter(s => s.status === 'stopped').length;
-  const total   = servers.length || 1;
-  document.getElementById('donut-pct').textContent = Math.round((running / total) * 100) + '%';
-  const ctx = document.getElementById('donutChart').getContext('2d');
-  if (donutChart) donutChart.destroy();
-  donutChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Running', 'Warning', 'Stopped'],
-      datasets: [{ data: [running, warning, stopped || 0.001], backgroundColor: ['#10b981','#f59e0b','#ef4444'], borderWidth: 0, hoverOffset: 8 }]
-    },
-    options: { cutout: '72%', plugins: { legend: { display: false } }, animation: { animateScale: true } }
-  });
-}
-
-async function loadMetrics(serverId) {
-  try {
-    const res = await fetch(`/api/metrics/${serverId}`);
-    renderLineChart(await res.json());
-  } catch(e) { console.error('Failed to load metrics:', e); }
-}
-
-function renderLineChart(data) {
-  const labels = data.map(d => new Date(d.recorded_at).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
-  const ctx = document.getElementById('lineChart').getContext('2d');
-  if (lineChart) lineChart.destroy();
-  const gCpu = ctx.createLinearGradient(0,0,0,200); gCpu.addColorStop(0,'rgba(124,58,237,0.28)'); gCpu.addColorStop(1,'rgba(124,58,237,0.01)');
-  const gMem = ctx.createLinearGradient(0,0,0,200); gMem.addColorStop(0,'rgba(59,130,246,0.22)');  gMem.addColorStop(1,'rgba(59,130,246,0.01)');
-  const gDisk= ctx.createLinearGradient(0,0,0,200); gDisk.addColorStop(0,'rgba(249,115,22,0.18)'); gDisk.addColorStop(1,'rgba(249,115,22,0.01)');
-  lineChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label:'CPU %',    data: data.map(d=>d.cpu_usage),     borderColor:'#7c3aed', backgroundColor: gCpu,  fill:true, tension:0.45, borderWidth:2.5, pointRadius:2, pointHoverRadius:5 },
-        { label:'Memory %', data: data.map(d=>d.memory_usage),  borderColor:'#3b82f6', backgroundColor: gMem,  fill:true, tension:0.45, borderWidth:2.5, pointRadius:2, pointHoverRadius:5 },
-        { label:'Disk %',   data: data.map(d=>d.disk_usage),    borderColor:'#f97316', backgroundColor: gDisk, fill:true, tension:0.45, borderWidth:2.5, pointRadius:2, pointHoverRadius:5 },
-      ]
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      interaction:{ mode:'index', intersect:false },
-      plugins:{
-        legend:{ position:'top', labels:{ font:{family:'Poppins',size:11,weight:'600'}, padding:16, boxWidth:10, usePointStyle:true, pointStyle:'circle' }},
-        tooltip:{ backgroundColor:'#1e1b4b', titleFont:{family:'Poppins',size:11}, bodyFont:{family:'Poppins',size:12}, padding:12, cornerRadius:10, callbacks:{ label: c => ` ${c.dataset.label}: ${c.parsed.y?.toFixed(1)}%` }}
-      },
-      scales:{
-        x:{ grid:{color:'#f3f4f6'}, ticks:{font:{family:'Poppins',size:9}, color:'#9ca3af', maxTicksLimit:8, maxRotation:0} },
-        y:{ min:0, max:100, grid:{color:'#f3f4f6'}, ticks:{font:{family:'Poppins',size:10}, color:'#9ca3af', callback: v => v+'%'} }
-      }
-    }
-  });
+  } catch(e) {
+    console.error('Error loading servers:', e);
+  }
 }
 
 async function loadAlerts() {
   try {
     const res = await fetch('/api/alerts');
-    alerts = await res.json();
-    document.getElementById('stat-alerts').textContent = alerts.length;
-    document.getElementById('alert-badge').style.display = alerts.length > 0 ? 'block' : 'none';
-    const list = document.getElementById('alert-list');
+    const alerts = await res.json();
+
+    document.getElementById('active-alerts').textContent = alerts.length;
+
+    const panel = document.getElementById('alerts-panel');
     if (!alerts.length) {
-      list.innerHTML = `<div class="empty-state"><span class="emoji">✅</span>No active alerts — all systems nominal</div>`;
+      panel.innerHTML = '<div style="color:#43a047;font-size:13px">&#10004; No active alerts</div>';
       return;
     }
-    list.innerHTML = alerts.map(a => {
-      const sev  = a.severity || 'warning';
-      const time = a.created_at ? new Date(a.created_at).toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'}) : '';
-      return `
-      <div class="alert-item ${sev}">
-        <div class="alert-icon ${sev}">${sev==='critical'?'🔴':'🟡'}</div>
-        <div class="alert-body">
-          <div class="alert-msg">${a.message}</div>
-          <div class="alert-meta">${a.server_name||''} · ${time}</div>
+    panel.innerHTML = alerts.map(a => `
+      <div class="alert-item ${a.severity}">
+        <div class="alert-title">${a.alert_type.replace('_', ' ')}</div>
+        <div>${a.message}</div>
+        <div class="alert-meta">
+          ${a.server_name} &middot;
+          ${a.severity.toUpperCase()} &middot;
+          ${new Date(a.created_at).toLocaleTimeString()}
         </div>
-        <div class="severity-badge ${sev}">${sev}</div>
-      </div>`;
-    }).join('');
-  } catch(e) { console.error('Failed to load alerts:', e); }
+      </div>
+    `).join('');
+
+  } catch(e) {
+    console.error('Error loading alerts:', e);
+  }
 }
 
-loadAll();
-setInterval(loadAll, 30000);
+async function loadChart(serverId, serverName) {
+  try {
+    const res = await fetch(`/api/metrics/${serverId}`);
+    const data = await res.json();
+
+    document.getElementById('chart-title').textContent =
+      `CPU & Memory History — ${serverName}`;
+
+    const labels  = data.map(d => new Date(d.recorded_at).toLocaleTimeString());
+    const cpuData = data.map(d => d.cpu_usage);
+    const memData = data.map(d => d.memory_usage);
+
+    if (cpuChart) cpuChart.destroy();
+
+    cpuChart = new Chart(document.getElementById('cpu-chart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'CPU %',
+            data: cpuData,
+            borderColor: '#1F4E79',
+            backgroundColor: 'rgba(31,78,121,0.1)',
+            tension: 0.4, fill: true, pointRadius: 3
+          },
+          {
+            label: 'Memory %',
+            data: memData,
+            borderColor: '#fb8c00',
+            backgroundColor: 'rgba(251,140,0,0.08)',
+            tension: 0.4, fill: true, pointRadius: 3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+          y: { min: 0, max: 100, ticks: { callback: v => v + '%' } }
+        }
+      }
+    });
+
+  } catch(e) {
+    console.error('Error loading chart:', e);
+  }
+}
+
+async function simulateData() {
+  await fetch('/api/simulate');
+  await loadServers();
+  await loadAlerts();
+}
+
+async function refreshAll() {
+  await loadServers();
+  await loadAlerts();
+}
+
+refreshAll();
+setInterval(refreshAll, 30000);
 </script>
 </body>
 </html>
