@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud Resource Monitor — OCI-Inspired</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f4f6f9; color: #1a1a2e; }
+
+  header {
+    background: #1F4E79; color: white;
+    padding: 16px 32px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  header h1 { font-size: 20px; font-weight: 600; }
+  header span { font-size: 13px; opacity: 0.75; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px; margin-bottom: 24px;
+  }
+  .stat-card {
+    background: white; border-radius: 10px;
+    padding: 20px; border-left: 4px solid #1F4E79;
+  }
+  .stat-card .label { font-size: 12px; color: #888; margin-bottom: 6px; }
+  .stat-card .value { font-size: 28px; font-weight: 700; color: #1F4E79; }
+  .stat-card .sub   { font-size: 12px; color: #aaa; margin-top: 4px; }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+  }
+
+  .card {
+    background: white; border-radius: 10px;
+    padding: 20px; margin-bottom: 20px;
+  }
+  .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: #1F4E79; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 12px; background: #f0f4f8; color: #555; font-weight: 600; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+  tr:hover td { background: #fafcff; cursor: pointer; }
+
+  .badge {
+    display: inline-block; padding: 3px 10px;
+    border-radius: 20px; font-size: 11px; font-weight: 600;
+  }
+  .badge.running  { background: #e8f5e9; color: #2e7d32; }
+  .badge.warning  { background: #fff8e1; color: #f57f17; }
+  .badge.critical { background: #ffebee; color: #c62828; }
+  .badge.stopped  { background: #f5f5f5; color: #757575; }
+
+  .bar-wrap { background: #f0f0f0; border-radius: 4px; height: 8px; width: 100%; margin-bottom: 3px; }
+  .bar { height: 8px; border-radius: 4px; transition: width 0.4s; }
+  .bar.low    { background: #43a047; }
+  .bar.medium { background: #fb8c00; }
+  .bar.high   { background: #e53935; }
+
+  .alert-item {
+    padding: 10px 14px; border-radius: 8px; margin-bottom: 8px;
+    border-left: 4px solid #e53935; background: #fff5f5;
+    font-size: 13px;
+  }
+  .alert-item.warning { border-color: #fb8c00; background: #fff8f0; }
+  .alert-item .alert-title { font-weight: 600; margin-bottom: 2px; }
+  .alert-item .alert-meta  { font-size: 11px; color: #888; margin-top: 4px; }
+
+  .btn {
+    background: #1F4E79; color: white;
+    border: none; border-radius: 6px;
+    padding: 9px 20px; font-size: 13px;
+    cursor: pointer; margin-bottom: 16px;
+  }
+  .btn:hover { background: #163d5e; }
+
+  #chart-container { position: relative; height: 220px; }
+
+  @media (max-width: 768px) {
+    .main-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&#9729; Cloud Resource Monitor</h1>
+  <span id="last-updated">Last updated: —</span>
+</header>
+
+<div class="container">
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">Total Servers</div>
+      <div class="value" id="total-servers">—</div>
+      <div class="sub">Across all regions</div>
+    </div>
+    <div class="stat-card" style="border-color:#43a047">
+      <div class="label">Servers Running</div>
+      <div class="value" id="running-servers" style="color:#43a047">—</div>
+      <div class="sub">Healthy instances</div>
+    </div>
+    <div class="stat-card" style="border-color:#e53935">
+      <div class="label">Active Alerts</div>
+      <div class="value" id="active-alerts" style="color:#e53935">—</div>
+      <div class="sub">Needs attention</div>
+    </div>
+    <div class="stat-card" style="border-color:#fb8c00">
+      <div class="label">Avg CPU Usage</div>
+      <div class="value" id="avg-cpu" style="color:#fb8c00">—</div>
+      <div class="sub">Across all servers</div>
+    </div>
+  </div>
+
+  <button class="btn" onclick="simulateData()">&#8635; Simulate New Metrics</button>
+
+  <div class="main-grid">
+    <div>
+      <div class="card">
+        <h2>Server Overview</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Server</th>
+              <th>Region</th>
+              <th>Status</th>
+              <th>CPU</th>
+              <th>Memory</th>
+              <th>Disk</th>
+            </tr>
+          </thead>
+          <tbody id="server-table-body">
+            <tr><td colspan="6" style="color:#aaa;text-align:center">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2 id="chart-title">Click any server row above to view its CPU &amp; Memory history</h2>
+        <div id="chart-container">
+          <canvas id="cpu-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Active Alerts</h2>
+        <div id="alerts-panel">
+          <div style="color:#aaa;font-size:13px">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let cpuChart = null;
+
+function barClass(v) {
+  if (v < 50) return 'low';
+  if (v < 75) return 'medium';
+  return 'high';
+}
+
+function bar(val) {
+  return `<div class="bar-wrap">
+            <div class="bar ${barClass(val)}" style="width:${val}%"></div>
+          </div>
+          <span style="font-size:11px;color:#555">${val}%</span>`;
+}
+
+async function loadServers() {
+  try {
+    const res = await fetch('/api/servers');
+    const servers = await res.json();
+
+    document.getElementById('total-servers').textContent = servers.length;
+    document.getElementById('running-servers').textContent =
+      servers.filter(s => s.status === 'running').length;
+
+    const cpus = servers.filter(s => s.cpu_usage != null).map(s => s.cpu_usage);
+    document.getElementById('avg-cpu').textContent =
+      cpus.length ? Math.round(cpus.reduce((a,b) => a+b, 0) / cpus.length) + '%' : '—';
+
+    const tbody = document.getElementById('server-table-body');
+    tbody.innerHTML = servers.map(s => `
+      <tr onclick="loadChart(${s.id}, '${s.name}')">
+        <td><strong>${s.name}</strong></td>
+        <td>${s.region}</td>
+        <td><span class="badge ${s.cpu_usage > 85 ? 'critical' : s.status}">
+          ${s.cpu_usage > 85 ? 'critical' : s.status}
+        </span></td>
+        <td>${s.cpu_usage    != null ? bar(s.cpu_usage)    : '—'}</td>
+        <td>${s.memory_usage != null ? bar(s.memory_usage) : '—'}</td>
+        <td>${s.disk_usage   != null ? bar(s.disk_usage)   : '—'}</td>
+      </tr>
+    `).join('');
+
+    document.getElementById('last-updated').textContent =
+      'Last updated: ' + new Date().toLocaleTimeString();
+
+  } catch(e) {
+    console.error('Error loading servers:', e);
+  }
+}
+
+async function loadAlerts() {
+  try {
+    const res = await fetch('/api/alerts');
+    const alerts = await res.json();
+
+    document.getElementById('active-alerts').textContent = alerts.length;
+
+    const panel = document.getElementById('alerts-panel');
+    if (!alerts.length) {
+      panel.innerHTML = '<div style="color:#43a047;font-size:13px">&#10004; No active alerts</div>';
+      return;
+    }
+    panel.innerHTML = alerts.map(a => `
+      <div class="alert-item ${a.severity}">
+        <div class="alert-title">${a.alert_type.replace('_', ' ')}</div>
+        <div>${a.message}</div>
+        <div class="alert-meta">
+          ${a.server_name} &middot;
+          ${a.severity.toUpperCase()} &middot;
+          ${new Date(a.created_at).toLocaleTimeString()}
+        </div>
+      </div>
+    `).join('');
+
+  } catch(e) {
+    console.error('Error loading alerts:', e);
+  }
+}
+
+async function loadChart(serverId, serverName) {
+  try {
+    const res = await fetch(`/api/metrics/${serverId}`);
+    const data = await res.json();
+
+    document.getElementById('chart-title').textContent =
+      `CPU & Memory History — ${serverName}`;
+
+    const labels  = data.map(d => new Date(d.recorded_at).toLocaleTimeString());
+    const cpuData = data.map(d => d.cpu_usage);
+    const memData = data.map(d => d.memory_usage);
+
+    if (cpuChart) cpuChart.destroy();
+
+    cpuChart = new Chart(document.getElementById('cpu-chart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'CPU %',
+            data: cpuData,
+            borderColor: '#1F4E79',
+            backgroundColor: 'rgba(31,78,121,0.1)',
+            tension: 0.4, fill: true, pointRadius: 3
+          },
+          {
+            label: 'Memory %',
+            data: memData,
+            borderColor: '#fb8c00',
+            backgroundColor: 'rgba(251,140,0,0.08)',
+            tension: 0.4, fill: true, pointRadius: 3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+          y: { min: 0, max: 100, ticks: { callback: v => v + '%' } }
+        }
+      }
+    });
+
+  } catch(e) {
+    console.error('Error loading chart:', e);
+  }
+}
+
+async function simulateData() {
+  await fetch('/api/simulate');
+  await loadServers();
+  await loadAlerts();
+}
+
+async function refreshAll() {
+  await loadServers();
+  await loadAlerts();
+}
+
+refreshAll();
+setInterval(refreshAll, 30000);
+</script>
+</body>
+</html>
