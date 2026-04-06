@@ -691,7 +691,14 @@ function pct(v) {
   return v != null ? Math.round(v) + '%' : '—';
 }
 
+async function simulate() {
+  try {
+    await fetch('/api/simulate');
+  } catch(e) { console.error('Simulate failed:', e); }
+}
+
 async function loadAll() {
+  await simulate();
   await Promise.all([loadServers(), loadAlerts()]);
 }
 

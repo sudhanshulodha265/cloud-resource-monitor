@@ -157,6 +157,19 @@ def simulate():
             VALUES (?, ?, ?, ?, ?, ?)
         """, (server['id'], cpu, mem, disk, net_in, net_out))
 
+        # Derive status from metrics: critical CPU → warning, very high both → stopped
+        if cpu > 90 and mem > 85:
+            new_status = 'stopped'
+        elif cpu > 85 or mem > 80:
+            new_status = 'warning'
+        else:
+            new_status = 'running'
+
+        cursor.execute(
+            "UPDATE servers SET status = ? WHERE id = ?",
+            (new_status, server['id'])
+        )
+
         if cpu > 85:
             cursor.execute("""
                 INSERT INTO alerts (server_id, alert_type, message, severity)
@@ -170,6 +183,23 @@ def simulate():
                 VALUES (?, 'HIGH_MEMORY', ?, 'warning')
             """, (server['id'],
                   f"Memory usage at {mem}% on {server['name']}"))
+
+        if disk > 80:
+            cursor.execute("""
+                INSERT INTO alerts (server_id, alert_type, message, severity)
+                VALUES (?, 'HIGH_DISK', ?, 'warning')
+            """, (server['id'],
+                  f"Disk usage at {disk}% on {server['name']}"))
+
+    # Prune old resolved + excess alerts to keep DB lean
+    cursor.execute("""
+        DELETE FROM alerts
+        WHERE id NOT IN (
+            SELECT id FROM alerts
+            ORDER BY created_at DESC
+            LIMIT 200
+        )
+    """)
 
     db.commit()
     db.close()
